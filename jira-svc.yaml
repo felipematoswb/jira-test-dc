@@ -1,0 +1,21 @@
+---
+### Kubernetes v1 Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: jira-external
+  namespace: bseg-devops
+  labels:
+    app: jira8
+spec:
+  type: LoadBalancer
+  externalIPs:
+    - {{nodeip1}}
+  ports:
+    - name: http
+      port: {{svcport}}
+      targetPort: 8080
+      protocol: TCP
+  sessionAffinity: ClientIP
+  selector:
+    app: jira8

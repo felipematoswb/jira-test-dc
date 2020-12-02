@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: bseg-devops
+  name: postgres-atlas
+spec:
+  serviceName: postgres-atlas
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-atlas
+  template:
+    metadata:
+      labels:
+        app: postgres-atlas
+    spec:
+      containers:
+        - name: postgres-atlas
+          image: felipematoswb/postgres-atlassian:11
+          env:
+            - name: POSTGRES_PASSWORD
+              value: test123
+          resources:
+            requests:
+              cpu: "2"
+              memory: "2Gi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - mountPath: "/var/lib/postgresql/data/"
+              name: postgresatlaspv
+      volumes:
+        - name: postgresatlaspv
+          persistentVolumeClaim:
+            claimName: postgresatlas

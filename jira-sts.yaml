@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jira8
+  namespace: bseg-devops
+spec:
+  serviceName: jira8
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jira8
+  template:
+    metadata:
+      labels:
+        app: jira8
+    spec:
+      subdomain: jira8
+      terminationGracePeriodSeconds: 300
+      initContainers:
+        - name: jirahomeperms
+          securityContext:
+          image: busybox
+          command: ["chown", "-R", "2001", "/var/atlassian/application-data/jira/"]
+          volumeMounts:
+            - mountPath: "/var/atlassian/application-data/jira/"
+              name: home
+        - name: jirasharedperms
+          image: busybox
+          command: ["ls", "-la"]
+          command: ["chown", "-R", "2001:2001", "/var/atlassian/shared"]
+          volumeMounts:
+            - mountPath: "/var/atlassian/shared"
+              name: shared-home
+      containers:
+        - name: jira8
+          image: atlassian/jira-software:8.6.0-jdk11
+          resources:
+            requests:
+              cpu: "3"
+              memory: "3Gi"
+            limits:
+              cpu: "3"
+              memory: "3Gi"
+          ports:
+            - containerPort: 8080
+              name: jiraport
+            - containerPort: 40001
+              name: jiraclusterport
+          #lifecycle:
+          #  postStart:
+          #    exec:
+          #      command: ["chown", "jira:jira", "/var/atlassian/application-data/jira/cluster.properties"]
+          env:
+            - name: JVM_MINIMUM_MEMORY
+              value: "2048m"
+              # 1536m
+            - name: JVM_MAXIMUM_MEMORY
+              value: "2048m"
+              # 1536m
+            - name: CATALINA_CONNECTOR_PROXYNAME
+              value: "jira.pandanet.xyz"
+              # jira.company.com
+            - name: CATALINA_CONNECTOR_SCHEME
+              value: "https"
+              # https
+            - name: CATALINA_CONNECTOR_SECURE
+              value: "true"
+              # Value = "true
+            - name: CLUSTERED
+              value: "true"
+            - name: JIRA_SHARED_HOME
+              value: "/var/atlassian/shared"
+            - name: SDOMAIN
+              value: .jira8
+            - name: NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: JIRA_NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: EHCACHE_LISTENER_HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: EHCACHE_LISTENER_PORT
+              value: "40001"
+            # These should be secrets in best practice
+            - name: ATL_JDBC_URL
+              value: jdbc:postgresql://postgres-atlas.bseg-devops:5432/jira_prod
+            - name: ATL_JDBC_USER
+              value: jira_prod
+            - name: ATL_JDBC_PASSWORD
+              value: jira_prod
+            # Above should be secrets to manage credentials securely! 
+            - name: ATL_DB_DRIVER
+              value: org.postgresql.Driver
+            - name: ATL_DB_TYPE
+              value: postgres72
+          readinessProbe:
+            httpGet:
+              port: 8080
+              path: /status
+            initialDelaySeconds: 180
+            periodSeconds: 15
+            successThreshold: 2
+            failureThreshold: 2
+            timeoutSeconds: 5
+          volumeMounts:
+            - mountPath: "/var/atlassian/application-data/jira"
+              name: home
+            - mountPath: "/var/atlassian/shared"
+              name: shared-home
+            #- mountPath: "/var/atlassian/application-data/jira/dbconfig.xml"
+            #  subPath: dbconfig.xml
+            #  name: jira-db-config-volume
+
+
+      volumes:
+        - name: home
+          emptyDir:
+            {}
+        - name: shared-home
+          persistentVolumeClaim:
+            claimName: jira
+        #- name: jira-db-config-volume
+        #  configMap:
+        #    name: jira-db-config-volume
+            #defaultMode: 0777
+        - name: jira-tomcat-volume
+          configMap:
+            name: jira-tomcat-xml
+            defaultMode: 0777

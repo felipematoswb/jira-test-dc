@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  namespace: bseg-devops
+  name: jira
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+  - ReadWriteMany
+  hostPath:
+    path: /var/jira
+  # nfs:
+  #   server: {{nfsserverip}}
+  #   path: {{nfspath}}
+    #server: 10.1.1.22
+    #path: "/root/nfs/jira_prod"

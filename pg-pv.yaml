@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  namespace: bseg-devops
+  name: postgresatlas
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+  - ReadWriteMany
+  hostPath:
+    path: /var/pv
+  # nfs:
+  #   server: {{nfsserverip}}
+  #   path: {{nfspath}}
